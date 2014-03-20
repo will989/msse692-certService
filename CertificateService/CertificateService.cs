@@ -5,12 +5,13 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.ServiceModel.Samples;
 
 namespace Microsoft.ServiceModel.Samples
 {
-    // Implement the ICalculator service contract in a service class.
+    // Implement the ICertificate service contract in a service class.
     public class CertificateService : ICertificate
     {
         //Return a list of certificates
@@ -63,11 +64,13 @@ namespace Microsoft.ServiceModel.Samples
             //make sure we aren't connecting to localhost, and got a good servername
             if (!serverName.ToUpper().Equals("LOCALHOST") && serverName.Length > 3)
             {
+                log.Debug("in !serverName.ToUpper().Equals(localhost");
                 // trying to concatenate the server name and store name for remote connection:
                 newStoreName = string.Format(@"\\{0}\{1}", serverName, storeName);
             }
             else
             {
+                log.Debug("In the else for some reason - we didn't get a good server name");
                 //we didn't get a good server name - use local host for now
                 newStoreName = string.Format("{0}", storeName);
             }
@@ -666,18 +669,31 @@ namespace Microsoft.ServiceModel.Samples
         {
             int certCount = 0;
 
-            //get certificates in remote stores for both servers
-            var storeListA = ListCertificatesInRemoteStore(storeName, storeLocation, serverA);
-            var storeListB = ListCertificatesInRemoteStore(storeName, storeLocation, serverB);
+            try
+            {
+                //get certificates in remote stores for both servers
+                log.Debug("right before list certificates in serverA");
+                var storeListA = ListCertificatesInRemoteStore(storeName, storeLocation, serverA);
+                log.Debug("after serverA check, before serverB");
+                var storeListB = ListCertificatesInRemoteStore(storeName, storeLocation, serverB);
+                log.Debug("after serverB check");
 
-            //compare the contents of serverA and serverB, storing the differences
-            List<X509Certificate2> noMatchingCertListA = storeListA.Except(storeListB).ToList();
-            List<X509Certificate2> noMatchingCertListB = storeListB.Except(storeListA).ToList();
+                //compare the contents of serverA and serverB, storing the differences
+                List<X509Certificate2> noMatchingCertListA = storeListA.Except(storeListB).ToList();
+                log.Debug("between noMatchingCertListA = storeListA.Except...");
+                List<X509Certificate2> noMatchingCertListB = storeListB.Except(storeListA).ToList();
+                log.Debug("after noMatchingCertListB = storeListB.Except...");
+                //this should be the list of certificates that are on one server but not the other
+                var differencesList = noMatchingCertListA.Union(noMatchingCertListB).ToList();
+                log.Debug("after populating differencesList");
 
-            //this should be the list of certificates that are on one server but not the other
-            var differencesList = noMatchingCertListA.Union(noMatchingCertListB).ToList();
-
-            return differencesList;
+                return differencesList;
+            }
+            catch (Exception ex)
+            {
+                log.Error("Caught exception in CompareCertificatesInStore: {0}", ex);
+                throw;
+            }
         }
 
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger
