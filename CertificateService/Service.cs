@@ -65,6 +65,14 @@ namespace Microsoft.ServiceModel.Samples
         bool RemoveCertificateLocal(string storeName, StoreLocation storeLocation, X509Certificate2 certificate);
 
         [OperationContract]
+        X509Certificate2 FindCertificateRemote(string certificateName, string storeName, StoreLocation location,
+            string serverName);
+
+        [OperationContract]
+        X509Certificate2 FindCertificateByThumbprintRemote(string thumbprint, string storeName, StoreLocation location,
+            string serverName);
+
+        [OperationContract]
         List<X509Certificate2> CompareCertificatesInStore(string storeName, StoreLocation storeLocation,
             string serverA, string serverB);
 

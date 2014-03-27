@@ -646,6 +646,150 @@ namespace Microsoft.ServiceModel.Samples
             return removed;
         }
 
+        public X509Certificate2 FindCertificateRemote(string certificateName, string storeName, StoreLocation location,
+            string serverName)
+        {
+               
+            log.Debug("In FindCertificateRemote");
+            string newStoreName = null;
+            //make sure we aren't connecting to localhost, and got a good servername
+            if (!serverName.ToUpper().Equals("LOCALHOST") && serverName.Length > 3)
+            {
+                // trying to concatenate the server name and store name for remote connection:
+                newStoreName = string.Format(@"\\{0}\{1}", serverName, storeName);
+            }
+            else
+            {
+                //we didn't get a good server name - use local host for now
+                newStoreName = string.Format("{0}", storeName);
+            }
+
+            X509Store store = new X509Store(newStoreName, location);
+            try
+            {
+                
+                store.Open(OpenFlags.ReadWrite);
+
+                log.Debug("Getting certificate store contents");
+                X509Certificate2Collection certificates =
+                    store.Certificates;
+                log.Debug("Got certificate store contents");
+                {
+                    foreach (X509Certificate2 testCertificate in certificates)
+                    {
+                        if (testCertificate.SubjectName.Name != null)
+                        {
+                            int result = String.Compare(testCertificate.SubjectName.Name, certificateName, new CultureInfo("en-US"),
+                                CompareOptions.IgnoreNonSpace | CompareOptions.IgnoreWidth | CompareOptions.IgnoreCase);
+
+                            System.Diagnostics.Debug.WriteLine("result = {0}", result);
+
+                            if (result != 0)
+                            {
+                                {
+                                    log.Debug("In if (result !=0) so we did not find a match");
+                                    System.Diagnostics.Debug.WriteLine("testCertificate.SubjectName.ToString: {0}", testCertificate.SubjectName.ToString());
+                                    System.Diagnostics.Debug.WriteLine("does not equal");
+                                    System.Diagnostics.Debug.WriteLine("This cert subject name..: {0}", certificateName);
+                                }
+                            }
+                            else
+                            {
+                                
+                                log.Debug("In the else, after store.Remove(certificate)!");
+                                log.Debug("success = true, certificate removed!");
+                                return testCertificate;
+                           
+                            }
+                        }
+                        // else
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            finally
+            {
+                store.Close();
+            }
+            return null;
+        }
+
+        public X509Certificate2 FindCertificateByThumbprintRemote(string thumbprint, string storeName, StoreLocation location,
+            string serverName)
+        {
+            bool success = false;
+            log.Debug("In FindCertificateByThumbprintRemote");
+            string newStoreName = null;
+            //make sure we aren't connecting to localhost, and got a good servername
+            if (!serverName.ToUpper().Equals("LOCALHOST") && serverName.Length > 3)
+            {
+                // trying to concatenate the server name and store name for remote connection:
+                newStoreName = string.Format(@"\\{0}\{1}", serverName, storeName);
+            }
+            else
+            {
+                //we didn't get a good server name - use local host for now
+                newStoreName = string.Format("{0}", storeName);
+            }
+
+            X509Store store = new X509Store(newStoreName, location);
+            try
+            {
+                store.Open(OpenFlags.ReadWrite);
+
+                System.Diagnostics.Debug.WriteLine("Calling EnumCertificates...", thumbprint);
+                //EnumCertificates(storeName, location);
+
+                log.Debug("Getting certificate store contents");
+                X509Certificate2Collection certificates =
+                    store.Certificates;
+                log.Debug("Got certificate store contents");
+
+                //store.Certificates.Find(X509FindType.FindByThumbprint, thumbprint, true);
+
+                //if (certificates != null && certificates.Count > 0)
+                {
+                    foreach (X509Certificate2 certificate in certificates)
+                    {
+                        int result = String.Compare(certificate.Thumbprint, thumbprint, new CultureInfo("en-US"),
+                            CompareOptions.IgnoreNonSpace | CompareOptions.IgnoreWidth | CompareOptions.IgnoreCase);
+
+                        System.Diagnostics.Debug.WriteLine("result = {0}", result);
+
+                        if (result != 0)
+                        {
+                            {
+                                log.Debug("In if (result !=0) so we did not find a match that time");
+                                System.Diagnostics.Debug.WriteLine("certificate.Thumbprint: {0}", certificate.Thumbprint);
+                                System.Diagnostics.Debug.WriteLine("does not equal");
+                                System.Diagnostics.Debug.WriteLine("This cert thumbprint..: {0}", thumbprint);
+                            }
+                        }
+                        else
+                        {
+                            
+                            log.Debug("In the else, found certificate!");
+                            log.Debug("success = true, certificate removed!");
+                            return certificate;
+                        }
+                        // else
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            finally
+            {
+                store.Close();
+            }
+            return null;
+        }
+
         public string GetData(int value)
         {
             return string.Format("You entered: {0}", value);
